@@ -1,0 +1,10 @@
+{% extends "orders/base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Welcome</h2>
+  <p style=" color: rgb(253, 252, 251);">Use the Upload page to send an Excel or CSV file with orders. The Dashboard page shows charts.</p>
+  <a class="btn" href="{% url 'orders:upload' %}">Upload Orders</a>
+</div>
+{% endblock %}

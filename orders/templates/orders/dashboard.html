@@ -1,0 +1,54 @@
+{% extends "orders/base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Summary Section -->
+<div class="card">
+    <h2>Summary</h2>
+
+    {% if summary %}
+        <p style="color: white;"><strong>Total Orders:</strong> {{ summary.total_orders }}</p>
+        <p style="color: white;"><strong>Total Sales:</strong> ₹{{ summary.total_sales|floatformat:2 }}</p>
+        <p style="color: white;"><strong>Top City:</strong> {{ summary.top_city }}</p>
+
+        {% if cleaned_url %}
+            <p><a href="{{ cleaned_url }}" class="btn">Download Cleaned Excel</a></p>
+        {% endif %}
+    {% else %}
+        <p>No data uploaded yet.</p>
+    {% endif %}
+</div>
+
+
+<!-- Charts Section -->
+<div class="card">
+    <h2>Charts</h2>
+
+    {% if charts.sales_by_city %}
+        <h3 style="color: white;">Sales by City</h3>
+        <img src="data:image/png;base64,{{ charts.sales_by_city }}" class="chart">
+    {% endif %}
+
+    {% if charts.sales_by_category %}
+        <h3 style="color: white;">Sales by Category</h3>
+        <img src="data:image/png;base64,{{ charts.sales_by_category }}" class="chart">
+    {% endif %}
+
+    {% if charts.monthly_trend %}
+        <h3 style="color: white;">Monthly Sales Trend</h3>
+        <img src="data:image/png;base64,{{ charts.monthly_trend }}" class="chart">
+    {% endif %}
+
+    {% if charts.payment_share %}
+        <h3>Payment Method Share</h3>
+        <img src="data:image/png;base64,{{ charts.payment_share }}" class="chart">
+    {% endif %}
+
+    {% if charts.top_products %}
+        <h3>Top Products</h3>
+        <img src="data:image/png;base64,{{ charts.top_products }}" class="chart">
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,94 @@
+# ============================
+# PYTHON + DJANGO GITIGNORE
+# ============================
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment (DO NOT UPLOAD)
+venv/
+env/
+.venv/
+
+# Django database files
+db.sqlite3
+*.sqlite3
+
+# Django static and media files
+staticfiles/
+media/
+media/*
+uploads/
+*.png
+*.jpg
+*.jpeg
+
+# Django logs
+*.log
+
+# Django secret/environment files
+.env
+*.env
+
+# Matplotlib cache
+*.matplotlib/
+**/MatplotlibBackend.qt5/
+
+# Excel uploads
+*.xlsx
+*.xls
+*.csv
+
+# PyInstaller
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+*.cover
+coverage.xml
+htmlcov/
+
+# Python packaging
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# MyPy / Pyright
+.mypy_cache/
+.pyright/
+
+# Editor / IDE directories
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python virtual environment in project subfolders
+*/venv/
+*/env/
+*/.venv/
+
+# Node modules (if ever used)
+node_modules/
+
+# Temporary files
+~$*
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.swp
+*.swo

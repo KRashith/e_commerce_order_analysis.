@@ -1,0 +1,30 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}E-Commerce{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'orders/css/style.css' %}">
+</head>
+<body>
+<header class="site-header">
+  <div class="container">
+    <h1 class="brand">E-Commerce Order Analysis</h1>
+    <nav class="top-nav">
+      <a href="{% url 'orders:home' %}">Home</a>
+      <a href="{% url 'orders:upload' %}">Upload</a>
+      <a href="{% url 'orders:dashboard' %}">Dashboard</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <p style="text-align:center;color:#ffffff;">Built with Django • Pandas • Matplotlib</p>
+</footer>
+</body>
+</html>

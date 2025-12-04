@@ -1,0 +1,16 @@
+{% extends "orders/base.html" %}
+{% block title %}Upload Orders{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Upload Orders Excel/CSV</h2>
+  <form action="{% url 'orders:upload' %}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <label style=" color: rgb(253, 252, 251);">Select file</label><br>
+    {{ form.file }}<br><br>
+    <button class="btn" type="submit">Upload & Analyze</button>
+  </form>
+</div>
+<p style="text-align:center;color:#ffffff;">Make sure your Excel includes: <strong>Order ID, Order Date, City, Category, Product, Payment, Quantity, Price</strong>.</p>
+{% endblock %}
