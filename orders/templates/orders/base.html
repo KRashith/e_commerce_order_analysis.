@@ -12,14 +12,30 @@
   <div class="container">
     <h1 class="brand">E-Commerce Order Analysis</h1>
     <nav class="top-nav">
-      <a href="{% url 'orders:home' %}">Home</a>
-      <a href="{% url 'orders:upload' %}">Upload</a>
-      <a href="{% url 'orders:dashboard' %}">Dashboard</a>
-    </nav>
+        {% if user.is_authenticated %}
+          <a href="{% url 'orders:dashboard' %}">Dashboard</a>
+          <a href="{% url 'orders:upload' %}">Upload</a>
+          <!-- POST Logout Button (Fix for your 405 error) -->
+          <form method="post" action="{% url 'orders:logout' %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="logout-btn">Logout</button>
+          </form>
+          
+        {% else %}
+          <a href="{% url 'orders:login' %}">Login</a>
+          <a href="{% url 'orders:signup' %}">Signup</a>
+        {% endif %}
+      </nav>
   </div>
 </header>
 
 <main class="container">
+  {% if messages %}
+      {% for message in messages %}
+        <div class="message {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+    
   {% block content %}{% endblock %}
 </main>
 

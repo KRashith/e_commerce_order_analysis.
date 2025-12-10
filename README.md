@@ -1,7 +1,6 @@
 # 📊 E-Commerce Order Analysis Web Application (Django + Pandas + Matplotlib)
 
-This is a complete **Data Analysis Web Application** built using **Django**, **Pandas**, **NumPy**, and **Matplotlib**.  
-Users can upload an Excel file containing e-commerce order data, and the application automatically:
+This is a complete **Data Analysis Web Application** built using **Django**, **Pandas**, **NumPy**, and **Matplotlib**.It includes user authentication (signup/login/logout) stored in the project database (MySQL or SQLite), and the UI is styled with plain HTML/CSS .Users can upload an Excel file containing e-commerce order data, and the application automatically:
 
 ✔ Cleans the dataset  
 ✔ Performs data analysis  
@@ -17,6 +16,7 @@ This project is perfect for beginners learning **Python, Django, Data Analysis, 
 ## 🚀 Features
 
 ### 📁 1. File Upload (Excel)
+- Signup, login (Django auth)
 - Supports `.xlsx`, `.xls`, and `.csv`
 - Automatically detects and cleans messy column names
 - Converts datatypes (date, quantity, price)
@@ -82,7 +82,6 @@ After processing, a cleaned Excel file is automatically generated and available 
 
 ---
 
-## 📁 Project Structure (Important Folders Only)
 
 ---
 

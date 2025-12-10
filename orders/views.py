@@ -9,36 +9,44 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from django.shortcuts import render, redirect
+from django.urls import reverse
+
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib import messages
+
 from .forms import UploadFileForm
 
-# Static folder where charts are saved
+# Where to save charts inside your project static
 CHART_DIR = Path(settings.BASE_DIR) / 'orders' / 'static' / 'orders' / 'charts'
 CHART_DIR.mkdir(parents=True, exist_ok=True)
 
-
-# base64 helper for displaying chart
-def get_base64_image():
+def _fig_to_base64():
     buffer = BytesIO()
-    plt.savefig(buffer, format='png', dpi=120, bbox_inches='tight')
+    plt.savefig(buffer, format='png', bbox_inches='tight', dpi=120)
     buffer.seek(0)
-    img_png = buffer.getvalue()
-    base64_img = base64.b64encode(img_png).decode('utf-8')
+    img_data = buffer.getvalue()
     buffer.close()
-    return base64_img
+    return base64.b64encode(img_data).decode('utf-8')
 
 
 def home(request):
     return render(request, 'orders/home.html')
 
 
-def upload_file(request):
+@login_required
+def upload(request):
+    """
+    Upload view: accepts file, reads with pandas, cleans, saves cleaned file,
+    generates charts and stores summary + charts in session then redirect to dashboard.
+    """
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             f = request.FILES['file']
 
-            # save uploaded file to /media/uploads/
+            # Save the uploaded file to MEDIA/uploads/
             uploads_dir = Path(settings.MEDIA_ROOT) / 'uploads'
             uploads_dir.mkdir(parents=True, exist_ok=True)
             upload_path = uploads_dir / f.name
@@ -46,124 +54,175 @@ def upload_file(request):
                 for chunk in f.chunks():
                     dest.write(chunk)
 
-            # read file into pandas
+            # Read file into DataFrame
             if f.name.lower().endswith(('.xls', '.xlsx')):
                 df = pd.read_excel(upload_path)
             else:
                 df = pd.read_csv(upload_path)
 
-            # clean columns
-            df.columns = [c.strip().lower().replace(' ', '_') for c in df.columns]
+            # Basic cleaning & normalization
+            df.columns = [str(c).strip().lower().replace(' ', '_') for c in df.columns]
+            # Coerce numeric
+            if 'quantity' in df.columns:
+                df['quantity'] = pd.to_numeric(df['quantity'], errors='coerce').fillna(0).astype(int)
+            else:
+                df['quantity'] = 1
+            if 'price' in df.columns:
+                df['price'] = pd.to_numeric(df['price'], errors='coerce').fillna(0.0)
+            else:
+                df['price'] = 0.0
 
-            df['quantity'] = pd.to_numeric(df.get('quantity', 1), errors='coerce').fillna(1).astype(int)
-            df['price'] = pd.to_numeric(df.get('price', 0.0), errors='coerce').fillna(0.0)
-            df['order_date'] = pd.to_datetime(df.get('order_date'), errors='coerce')
+            # parse order_date if present
+            if 'order_date' in df.columns:
+                df['order_date'] = pd.to_datetime(df['order_date'], errors='coerce')
+
             df['total'] = df['quantity'] * df['price']
 
-            # save cleaned excel
-            cleaned_path = Path(settings.MEDIA_ROOT) / f"cleaned_{f.name}"
+            # Save cleaned file to MEDIA for download
+            cleaned_name = f"cleaned_{f.name}"
+            cleaned_path = Path(settings.MEDIA_ROOT) / cleaned_name
             df.to_excel(cleaned_path, index=False)
 
-            # generate charts (both saved + base64)
-            charts_base64 = generate_charts(df)
+            # Generate charts and base64 versions
+            charts = generate_charts(df)
 
             summary = {
                 'total_orders': int(df.shape[0]),
                 'total_sales': float(df['total'].sum()),
-                'top_city': df.groupby('city')['total'].sum().idxmax() if 'city' in df.columns else ''
+                'top_city': df.groupby('city')['total'].sum().idxmax() if 'city' in df.columns and not df.groupby('city')['total'].sum().empty else ''
             }
 
+            # store for dashboard
             request.session['summary'] = summary
-            request.session['charts_base64'] = charts_base64
-            request.session['cleaned_file'] = cleaned_path.name
+            request.session['charts'] = charts
+            request.session['cleaned_name'] = cleaned_name
 
             return redirect('orders:dashboard')
+    else:
+        form = UploadFileForm()
 
-    form = UploadFileForm()
     return render(request, 'orders/index.html', {'form': form})
 
 
+@login_required
 def dashboard(request):
     summary = request.session.get('summary')
-    charts = request.session.get('charts_base64')
-    cleaned_file = request.session.get('cleaned_file')
+    charts = request.session.get('charts', {})
+    cleaned_name = request.session.get('cleaned_name')
+
+    cleaned_url = f"{settings.MEDIA_URL}{cleaned_name}" if cleaned_name else None
 
     return render(request, 'orders/dashboard.html', {
         'summary': summary,
         'charts': charts,
-        'cleaned_url': f"{settings.MEDIA_URL}{cleaned_file}" if cleaned_file else None
+        'cleaned_url': cleaned_url
     })
 
 
+def signup(request):
+    """
+    Simple signup view — creates a User (username, email, password).
+    Passwords are hashed by Django automatically.
+    """
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password = request.POST.get('password', '')
+
+        if not username or not password:
+            messages.error(request, "Username and password are required.")
+            return redirect('orders:signup')
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username already exists.")
+            return redirect('orders:signup')
+
+        user = User.objects.create_user(username=username, email=email, password=password)
+        user.save()
+        messages.success(request, "Account created successfully. Please log in.")
+        return redirect('orders:login')
+
+    return render(request, 'orders/signup.html')
+    
+
 def generate_charts(df):
-    """SAVE charts + RETURN base64 images for displaying."""
+    """
+    Generate charts (saved to static folder) and return base64 inline strings in a dict.
+    """
     charts = {}
 
-    # remove old charts
+    # Remove old charts
     for f in CHART_DIR.glob("*.png"):
         try:
             f.unlink()
-        except:
+        except Exception:
             pass
 
-    # ---------- 1. Sales by City ----------
+    # Sales by city (bar)
     if 'city' in df.columns:
         city = df.groupby('city')['total'].sum().sort_values(ascending=False)
         if not city.empty:
             plt.figure(figsize=(7,4))
             city.plot(kind='bar')
             plt.title('Sales by City')
-            # save chart file
+            plt.tight_layout()
             plt.savefig(CHART_DIR / 'sales_by_city.png')
-            # base64 for dashboard
-            charts['sales_by_city'] = get_base64_image()
+            charts['sales_by_city'] = _fig_to_base64()
             plt.close()
 
-    # ---------- 2. Sales by Category ----------
+    # Sales by category (bar/pie)
     if 'category' in df.columns:
         cat = df.groupby('category')['total'].sum().sort_values(ascending=False)
         if not cat.empty:
             plt.figure(figsize=(7,4))
             cat.plot(kind='bar')
             plt.title('Sales by Category')
+            plt.tight_layout()
             plt.savefig(CHART_DIR / 'sales_by_category.png')
-            charts['sales_by_category'] = get_base64_image()
+            charts['sales_by_category'] = _fig_to_base64()
             plt.close()
 
-    # ---------- 3. Monthly Trend ----------
+    # Monthly trend
     if 'order_date' in df.columns:
-        df['month'] = df['order_date'].dt.to_period('M')
-        monthly = df.groupby('month')['total'].sum()
-        if not monthly.empty:
-            plt.figure(figsize=(7,4))
-            monthly.index = monthly.index.astype(str)
-            monthly.plot(kind='line', marker='o')
-            plt.title('Monthly Sales Trend')
-            plt.savefig(CHART_DIR / 'monthly_trend.png')
-            charts['monthly_trend'] = get_base64_image()
-            plt.close()
+        try:
+            df['month'] = df['order_date'].dt.to_period('M')
+            monthly = df.groupby('month')['total'].sum()
+            if not monthly.empty:
+                plt.figure(figsize=(7,4))
+                monthly.index = monthly.index.astype(str)
+                monthly.plot(kind='line', marker='o')
+                plt.title('Monthly Sales Trend')
+                plt.tight_layout()
+                plt.savefig(CHART_DIR / 'monthly_trend.png')
+                charts['monthly_trend'] = _fig_to_base64()
+                plt.close()
+        except Exception:
+            pass
 
-    # ---------- 4. Payment Share ----------
-    if 'payment' in df.columns:
-        pay = df.groupby('payment')['total'].sum()
+    # Payment methods (pie)
+    if 'payment' in df.columns or 'payment_method' in df.columns:
+        key = 'payment' if 'payment' in df.columns else 'payment_method'
+        pay = df.groupby(key)['total'].sum()
         if not pay.empty:
             plt.figure(figsize=(6,6))
             pay.plot(kind='pie', autopct='%1.1f%%')
-            plt.title('Payment Method Share')
             plt.ylabel('')
+            plt.title('Payment Method Share')
+            plt.tight_layout()
             plt.savefig(CHART_DIR / 'payment_share.png')
-            charts['payment_share'] = get_base64_image()
+            charts['payment_share'] = _fig_to_base64()
             plt.close()
 
-    # ---------- 5. Top Products ----------
+    # Top products
     if 'product' in df.columns:
         prod = df.groupby('product')['quantity'].sum().sort_values(ascending=False).head(10)
         if not prod.empty:
             plt.figure(figsize=(7,4))
             prod.plot(kind='bar')
-            plt.title('Top Products')
+            plt.title('Top Products by Quantity')
+            plt.tight_layout()
             plt.savefig(CHART_DIR / 'top_products.png')
-            charts['top_products'] = get_base64_image()
+            charts['top_products'] = _fig_to_base64()
             plt.close()
 
     return charts

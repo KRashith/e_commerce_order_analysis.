@@ -73,7 +73,7 @@ USE_TZ = True
 
 # Static files (CSS)
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [ BASE_DIR / 'orders' / 'static' ]   # points to orders/static
+STATICFILES_DIRS = [ BASE_DIR / 'orders' / 'static', ]   # points to orders/static
 STATIC_ROOT = BASE_DIR / 'staticfiles'  # for collectstatic if needed
 
 # Media (uploaded and cleaned files)
@@ -81,3 +81,11 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+#login
+LOGIN_URL = 'orders:login'
+LOGIN_REDIRECT_URL = 'orders:home'
+LOGOUT_REDIRECT_URL = 'orders:login'
+
+
+

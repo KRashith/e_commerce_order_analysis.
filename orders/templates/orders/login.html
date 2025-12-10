@@ -1,0 +1,27 @@
+{% load static %}
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="{% static 'orders/css/login.css' %}">
+  </head>
+  <body>
+    <div class="login-wrap">
+      <form method="post" class="form_main">
+        {% csrf_token %}
+        <p class="heading">Login</p>
+        <div class="inputContainer">
+          <input type="text" name="username" placeholder="Username" class="inputField" required>
+        </div>
+        <div class="inputContainer">
+          <input type="password" name="password" placeholder="Password" class="inputField" required>
+        </div>
+        <button id="button" type="submit">Login</button>
+        <p style="text-align:center;margin-top:10px;">
+          Don't have an account? <a href="{% url 'orders:signup' %}">Signup</a>
+        </p>
+      </form>
+    </div>
+  </body>
+</html>
