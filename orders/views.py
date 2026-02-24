@@ -30,7 +30,7 @@ def _fig_to_base64():
     buffer.close()
     return base64.b64encode(img_data).decode('utf-8')
 
-
+@login_required
 def home(request):
     return render(request, 'orders/home.html')
 
@@ -77,6 +77,35 @@ def upload(request):
                 df['order_date'] = pd.to_datetime(df['order_date'], errors='coerce')
 
             df['total'] = df['quantity'] * df['price']
+            df.dropna(how='all', inplace=True)   #Removes rows where everything is empty.
+            
+            #HANDLE TEXT COLUMN NaN
+            text_cols = df.select_dtypes(include='object').columns
+            df[text_cols] = df[text_cols].fillna('Unknown')
+            if 'order_date' in df.columns:
+                df['order_date'].fillna(df['order_date'].mode()[0], inplace=True)
+            
+            #REMOVE INVALID SALES ROWS
+            df = df[(df['quantity'] >= 0) & (df['price'] >= 0)]
+            #STANDARDIZE OTHER TEXT COLUMNS
+            for col in ['product', 'payment_mode', 'customer_name']:
+                if col in df.columns:
+                    df[col] = (
+            df[col]
+            .astype(str)
+            .str.strip()
+            .str.title()
+        )
+            
+            if 'city' in df.columns:
+                df['city'] = ( df['city'].astype(str).str.strip().str.lower().str.title())
+               # remove extra spaces  # convert to lowercase # Capitalize (Delhi, Mumbai)
+            
+    
+
+
+            if df.empty:
+                 return render(request, 'orders/upload.html', {'error': 'Uploaded file has no valid numeric data.'})
 
             # Save cleaned file to MEDIA for download
             cleaned_name = f"cleaned_{f.name}"
@@ -214,8 +243,9 @@ def generate_charts(df):
             plt.close()
 
     # Top products
-    if 'product' in df.columns:
-        prod = df.groupby('product')['quantity'].sum().sort_values(ascending=False).head(10)
+    if 'product' in df.columns or 'product_name' in df.columns:
+        key = 'product' if 'product' in df.columns else 'product_name'
+        prod = df.groupby(key)['quantity'].sum().sort_values(ascending=False).head(10)
         if not prod.empty:
             plt.figure(figsize=(7,4))
             prod.plot(kind='bar')
