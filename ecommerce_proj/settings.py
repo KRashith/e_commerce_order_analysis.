@@ -52,17 +52,10 @@ WSGI_APPLICATION = 'ecommerce_proj.wsgi.application'
 # Use SQLite for simplicity
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ecommerce_db',
-        'USER': 'root',
-        'PASSWORD': 'rashith@cse0',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-}
 
 AUTH_PASSWORD_VALIDATORS = []
 
