@@ -45,6 +45,10 @@ def upload(request):
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
             f = request.FILES['file']
+            # Check if file size exceeds 3MB (3 * 1024 * 1024 bytes)
+            if f.size > 3 * 1024 * 1024:
+                messages.error(request, "File too large. Max 3MB allowed.")
+                return render(request, 'orders/index.html', {'form': form})
 
             # Save the uploaded file to MEDIA/uploads/
             uploads_dir = Path(settings.MEDIA_ROOT) / 'uploads'
