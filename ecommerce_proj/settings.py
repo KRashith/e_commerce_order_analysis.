@@ -50,7 +50,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'ecommerce_proj.wsgi.application'
 
-# Use SQLite for simplicity
+# Use PostgreSQL for simplicity
 DATABASES = {
     'default': dj_database_url.config(default=os.environ.get("DATABASE_URL"))
 }
